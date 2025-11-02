@@ -1,0 +1,36 @@
+{
+	"name": "exceltable",
+	"dockerComposeFile": "compose.yaml",
+	"service": "devcontainer",
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/go:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"editor.formatOnSave": true,
+				"files.associations": {
+					"*.env": "properties",
+					"*.env.template": "properties"
+				}
+			},
+			"extensions": [
+				"golang.go",
+				"mads-hartmann.bash-ide-vscode",
+				"docsmsft.docs-markdown",
+				"DavidAnson.vscode-markdownlint",
+				"docker.docker",
+				"mhutchie.git-graph",
+				"eamodio.gitlens",
+				"mechatroner.rainbow-csv",
+				"janisdd.vscode-edit-csv",
+				"GrapeCity.gc-excelviewer",
+				"GitHub.vscode-github-actions"
+			]
+		}
+	},
+	"workspaceFolder": "/workspaces/exceltable",
+	"remoteUser": "vscode",
+	"updateRemoteUserUID": true
+}

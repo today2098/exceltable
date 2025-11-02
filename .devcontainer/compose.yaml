@@ -1,0 +1,17 @@
+services:
+  devcontainer:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        USERNAME: vscode
+        GOPATH: /go
+        GOMODCACHE: /go/pkg/mod
+    volumes:
+      - ..:/workspaces/exceltable:cache
+      - go_mod_cache:/go/pkg/mod:delegated
+    command: ["sleep", "infinity"]
+    restart: always
+
+volumes:
+  go_mod_cache:
