@@ -23,6 +23,7 @@
 				"docker.docker",
 				"mhutchie.git-graph",
 				"eamodio.gitlens",
+				"ms-vscode.live-server",
 				"mechatroner.rainbow-csv",
 				"janisdd.vscode-edit-csv",
 				"GrapeCity.gc-excelviewer",
