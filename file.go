@@ -22,6 +22,14 @@ func NewFile() (f *File, err error) {
 		rules: make([]*fileRule, 0, len(rules.v)),
 	}
 
+	// Rename initial sheet.
+	if _, err := f.File.NewSheet("-"); err != nil {
+		return nil, err
+	}
+	if err := f.File.DeleteSheet("Sheet1"); err != nil {
+		return nil, err
+	}
+
 	if err := f.registerRuleTags(); err != nil {
 		return nil, err
 	}
