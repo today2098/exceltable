@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu
+FROM mcr.microsoft.com/devcontainers/base:noble
 
 ARG USERNAME=vscode
 ARG GOPATH=/go
