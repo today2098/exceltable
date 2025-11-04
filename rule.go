@@ -13,16 +13,17 @@ type ruleTagType = string
 type predKeyType = string
 
 const (
-	// rule tag name.
+	// Rule tag name.
 	warnTag  ruleTagType = "warn"
 	errorTag ruleTagType = "error"
 
-	// rule predicate key.
-	always        predKeyType = "always"
-	zero          predKeyType = "zero"
-	notZero       predKeyType = "notZero"
-	nilPredKey    predKeyType = "nil"
-	notNilPredKey predKeyType = "notNil"
+	// Rule predicate key name.
+	alwaysPredKey  predKeyType = "always"
+	neverPredKey   predKeyType = "never"
+	zeroPredKey    predKeyType = "zero"
+	notZeroPredKey predKeyType = "notZero"
+	nilPredKey     predKeyType = "nil"
+	notNilPredKey  predKeyType = "notNil"
 )
 
 type rule struct {
@@ -57,15 +58,16 @@ func init() {
 		},
 	}, -10002)
 
-	RegisterPredicate(always, func() bool { return true })
-	RegisterPredicate(zero, func(arg any) bool {
+	RegisterPredicate(alwaysPredKey, func() bool { return true })
+	RegisterPredicate(neverPredKey, func() bool { return false })
+	RegisterPredicate(zeroPredKey, func(arg any) bool {
 		v := reflect.ValueOf(arg)
 		if v.Kind() == reflect.Pointer && !v.IsNil() {
 			v = v.Elem()
 		}
 		return v.IsZero()
 	})
-	RegisterPredicate(notZero, func(arg any) bool {
+	RegisterPredicate(notZeroPredKey, func(arg any) bool {
 		v := reflect.ValueOf(arg)
 		if v.Kind() == reflect.Pointer && !v.IsNil() {
 			v = v.Elem()
@@ -88,7 +90,7 @@ func RegisterRule(tag ruleTagType, style *excelize.Style, priority int) {
 
 	rules.v = append(rules.v, &rule{priority, tag, style})
 	sort.SliceStable(rules.v, func(i, j int) bool {
-		return rules.v[i].priority < rules.v[j].priority // NOTE: Priority is in ascending order.
+		return rules.v[i].priority < rules.v[j].priority // NOTE: Rules are sorted in ascending order of priority.
 	})
 }
 
@@ -98,13 +100,14 @@ func RegisterPredicate(key predKeyType, pred any) {
 
 func CountByRule[M any](obj *M, tag string) (int, error) {
 	t := reflect.TypeFor[M]()
-	ptrV := reflect.ValueOf(obj)
-	v := ptrV.Elem()
-	if v.Kind() != reflect.Struct {
+	if t.Kind() != reflect.Struct {
 		return 0, ErrNotStructType
 	}
 
-	res := 0
+	ptrV := reflect.ValueOf(obj)
+	v := ptrV.Elem()
+
+	cnt := 0
 	for i := range t.NumField() {
 		keys := strings.Split(t.Field(i).Tag.Get(tag), ",")
 		b, err := verifyByPreds(ptrV, v, v.Field(i), keys)
@@ -112,11 +115,11 @@ func CountByRule[M any](obj *M, tag string) (int, error) {
 			return 0, err
 		}
 		if b {
-			res++
+			cnt++
 		}
 	}
 
-	return res, nil
+	return cnt, nil
 }
 
 func verifyByPreds(ptrV, v, field reflect.Value, keys []predKeyType) (bool, error) {
@@ -138,36 +141,34 @@ func verifyByPred(ptrV, v, field reflect.Value, key predKeyType) (bool, error) {
 	case "", "-":
 		return false, nil
 	default:
-		pred := ptrV.MethodByName(key)
-		if !pred.IsValid() {
-			pred = v.MethodByName(key)
-			if !pred.IsValid() {
-				tmp, ok := predicates.Load(key)
-				if !ok {
-					return false, ErrUnknownMethod
-				}
-				pred = reflect.ValueOf(tmp)
-			}
+		if pred := ptrV.MethodByName(key); pred.IsValid() {
+			return callPredicate(pred, field)
 		}
 
-		b, err := callPredicate(pred, field)
-		if err != nil {
-			return false, err
+		if pred := v.MethodByName(key); pred.IsValid() {
+			return callPredicate(pred, field)
 		}
 
-		return b, nil
+		if pred, ok := predicates.Load(key); ok {
+			return callPredicate(reflect.ValueOf(pred), field)
+		}
 	}
+
+	return false, ErrUnknownMethod
 }
 
-func callPredicate(pred, filed reflect.Value) (bool, error) {
+func callPredicate(pred, arg reflect.Value) (bool, error) {
 	if !(pred.Type().NumOut() == 1 && pred.Type().Out(0).Kind() == reflect.Bool) {
 		return false, ErrInvalidMethod
 	}
+
 	if pred.Type().NumIn() == 0 {
-		return pred.Call([]reflect.Value{})[0].Bool(), nil
+		return pred.Call([]reflect.Value{})[0].Bool(), nil // nulary predicate
 	}
-	if pred.Type().NumIn() == 1 && filed.Type().AssignableTo(pred.Type().In(0)) {
-		return pred.Call([]reflect.Value{filed})[0].Bool(), nil
+
+	if pred.Type().NumIn() == 1 && arg.Type().AssignableTo(pred.Type().In(0)) {
+		return pred.Call([]reflect.Value{arg})[0].Bool(), nil // unary predicate
 	}
+
 	return false, ErrInvalidMethod
 }
