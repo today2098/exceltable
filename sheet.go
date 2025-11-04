@@ -11,6 +11,8 @@ import (
 const (
 	csvTag   string = "csv"
 	excelTag string = "excel"
+
+	defaultTableStyle = "TableStyleMedium6"
 )
 
 type sheetRule struct {
@@ -20,12 +22,12 @@ type sheetRule struct {
 
 type Sheet[M any] struct {
 	File            *File
-	Name            string
+	name            string
 	x, y            int
 	row, tableWidth int
 	numField        int
 	skip            []bool
-	header          []string
+	header          []any
 	rulesList       [][]*sheetRule
 }
 
@@ -50,7 +52,7 @@ func NewSheet[M any](f *File, name, cell string, active bool) (*Sheet[M], error)
 
 	return &Sheet[M]{
 		File:       f,
-		Name:       name,
+		name:       name,
 		x:          x,
 		y:          y,
 		row:        0,
@@ -111,16 +113,16 @@ func (s *Sheet[M]) SetRow(obj *M) error {
 }
 
 func (s *Sheet[M]) setCellValue(col, row int, val any) error {
-	return s.File.File.SetCellValue(s.Name, s.coordinatesToCellName(col, row), val)
+	return s.File.File.SetCellValue(s.name, s.coordinatesToCellName(col, row), val)
 }
 
 func (s *Sheet[M]) setCellStyle(col, row, styleId int) error {
 	cell := s.coordinatesToCellName(col, row)
-	return s.File.File.SetCellStyle(s.Name, cell, cell, styleId)
+	return s.File.File.SetCellStyle(s.name, cell, cell, styleId)
 }
 
 func (s *Sheet[M]) AddTable() error {
-	return s.File.File.AddTable(s.Name, s.newTable("TableStyleMedium6"))
+	return s.File.File.AddTable(s.name, s.newTable(defaultTableStyle))
 }
 
 func (s *Sheet[M]) newTable(styleName string) *excelize.Table {
@@ -128,7 +130,7 @@ func (s *Sheet[M]) newTable(styleName string) *excelize.Table {
 	bottomRightCell := s.coordinatesToCellName(max(s.tableWidth-1, 1), max(s.row, 1))
 	return &excelize.Table{
 		Range:     fmt.Sprintf("%s:%s", topLeftCell, bottomRightCell),
-		Name:      fmt.Sprintf("%sTable", s.Name),
+		Name:      fmt.Sprintf("%sTable", s.name),
 		StyleName: styleName,
 	}
 }
@@ -141,14 +143,14 @@ func (s *Sheet[M]) coordinatesToCellName(col, row int) string {
 	return cell
 }
 
-func getFieldValue(t reflect.Type, fileRules []*fileRule) (tableWidth, numFiled int, skip []bool, header []string, rulesList [][]*sheetRule, err error) {
+func getFieldValue(t reflect.Type, fileRules []*fileRule) (tableWidth, numFiled int, skip []bool, header []any, rulesList [][]*sheetRule, err error) {
 	if t.Kind() != reflect.Struct {
 		return 0, 0, nil, nil, nil, ErrNotStructType
 	}
 
 	tableWidth, numFiled = 0, t.NumField()
 	skip = make([]bool, numFiled)
-	header = make([]string, 0, numFiled)
+	header = make([]any, 0, numFiled)
 	rulesList = make([][]*sheetRule, 0, numFiled)
 	for i := range numFiled {
 		field := t.Field(i)
