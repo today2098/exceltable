@@ -74,8 +74,12 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 	return ssw.StreamWriter.SetRow(cell, values)
 }
 
-func (ssw *SheetWithStreamWriter[M]) AddTable() error {
-	return ssw.StreamWriter.AddTable(ssw.Sheet.newTable(defaultTableStyle))
+func (ssw *SheetWithStreamWriter[M]) AddDefaultTable() error {
+	return ssw.AddTable(defaultTableStyle)
+}
+
+func (ssw *SheetWithStreamWriter[M]) AddTable(styleName string) error {
+	return ssw.StreamWriter.AddTable(ssw.Sheet.newTable(styleName))
 }
 
 func (ssw *SheetWithStreamWriter[M]) Flush() error {

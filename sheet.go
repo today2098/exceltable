@@ -121,8 +121,12 @@ func (s *Sheet[M]) setCellStyle(col, row, styleId int) error {
 	return s.File.File.SetCellStyle(s.name, cell, cell, styleId)
 }
 
-func (s *Sheet[M]) AddTable() error {
-	return s.File.File.AddTable(s.name, s.newTable(defaultTableStyle))
+func (s *Sheet[M]) AddDefaultTable() error {
+	return s.AddTable(defaultTableStyle)
+}
+
+func (s *Sheet[M]) AddTable(styleName string) error {
+	return s.File.File.AddTable(s.name, s.newTable(styleName))
 }
 
 func (s *Sheet[M]) newTable(styleName string) *excelize.Table {
