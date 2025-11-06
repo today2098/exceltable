@@ -20,12 +20,7 @@ type sheetRule struct {
 	styleID int
 }
 
-type sheetBaseInterface interface {
-	AddTable(string) error
-}
-
 type sheetBase[M any] struct {
-	sheetBaseInterface
 	File            *File
 	name            string
 	x, y            int
