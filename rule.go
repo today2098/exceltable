@@ -43,20 +43,20 @@ var (
 )
 
 func init() {
-	RegisterRule(errorTag, &excelize.Style{
+	RegisterRule(-1e9-1, errorTag, &excelize.Style{
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
 			Color:   []string{"#ffaaaa"},
 		},
-	}, -10001)
-	RegisterRule(warnTag, &excelize.Style{
+	})
+	RegisterRule(-1e9-2, warnTag, &excelize.Style{
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
 			Color:   []string{"#ffffaa"},
 		},
-	}, -10002)
+	})
 
 	RegisterPredicate(alwaysPredKey, func() bool { return true })
 	RegisterPredicate(neverPredKey, func() bool { return false })
@@ -84,7 +84,7 @@ func init() {
 	})
 }
 
-func RegisterRule(tag ruleTagType, style *excelize.Style, priority int) {
+func RegisterRule(priority int, tag ruleTagType, style *excelize.Style) {
 	rules.Lock()
 	defer rules.Unlock()
 
