@@ -16,15 +16,14 @@ type File struct {
 	rules []*fileRule
 }
 
-func NewFile() (f *File, err error) {
-	f = &File{
-		File:  excelize.NewFile(),
-		rules: make([]*fileRule, 0, len(rules.v)),
-	}
+func NewFile(opts ...excelize.Options) (*File, error) {
+	return Wrap(excelize.NewFile(opts...))
+}
 
-	// Rename initial sheet.
-	if err := f.File.SetSheetName("Sheet1", "-"); err != nil {
-		return nil, err
+func Wrap(file *excelize.File) (*File, error) {
+	f := &File{
+		File:  file,
+		rules: make([]*fileRule, 0, len(rules.v)),
 	}
 
 	if err := f.registerRuleTags(); err != nil {
@@ -32,14 +31,6 @@ func NewFile() (f *File, err error) {
 	}
 
 	return f, nil
-}
-
-func (f *File) SaveAs(name string) error {
-	return f.File.SaveAs(name)
-}
-
-func (f *File) Close() error {
-	return f.File.Close()
 }
 
 func (f *File) registerRuleTags() error {
@@ -54,4 +45,8 @@ func (f *File) registerRuleTags() error {
 		f.rules = append(f.rules, &fileRule{r.tag, styleID})
 	}
 	return nil
+}
+
+func (f *File) SaveAs(name string, opts ...excelize.Options) error {
+	return f.File.SaveAs(name, opts...)
 }
