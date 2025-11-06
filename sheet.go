@@ -116,9 +116,9 @@ func (s *Sheet[M]) setCellValue(col, row int, val any) error {
 	return s.File.File.SetCellValue(s.name, s.coordinatesToCellName(col, row), val)
 }
 
-func (s *Sheet[M]) setCellStyle(col, row, styleId int) error {
+func (s *Sheet[M]) setCellStyle(col, row, styleID int) error {
 	cell := s.coordinatesToCellName(col, row)
-	return s.File.File.SetCellStyle(s.name, cell, cell, styleId)
+	return s.File.File.SetCellStyle(s.name, cell, cell, styleID)
 }
 
 func (s *Sheet[M]) AddDefaultTable() error {

@@ -39,7 +39,7 @@ var (
 	}{
 		v: make([]*rule, 0),
 	}
-	predicates sync.Map // pair of (rule name, function).
+	predicates sync.Map // pair of (key, function).
 )
 
 func init() {
@@ -107,8 +107,8 @@ func CountByRule[M any](obj *M, tag string) (int, error) {
 	ptrV := reflect.ValueOf(obj)
 	v := ptrV.Elem()
 
-	cnt := 0
-	for i := range t.NumField() {
+	numField, cnt := t.NumField(), 0
+	for i := range numField {
 		keys := strings.Split(t.Field(i).Tag.Get(tag), ",")
 		b, err := verifyByPreds(ptrV, v, v.Field(i), keys)
 		if err != nil {

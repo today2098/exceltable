@@ -23,10 +23,7 @@ func NewFile() (f *File, err error) {
 	}
 
 	// Rename initial sheet.
-	if _, err := f.File.NewSheet("-"); err != nil {
-		return nil, err
-	}
-	if err := f.File.DeleteSheet("Sheet1"); err != nil {
+	if err := f.File.SetSheetName("Sheet1", "-"); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +46,7 @@ func (f *File) registerRuleTags() error {
 	rules.Lock()
 	defer rules.Unlock()
 
-	for _, r := range slices.Backward(rules.v) { // NOTE: Priority is in ascending order.
+	for _, r := range slices.Backward(rules.v) { // NOTE: Rules are sorted in ascending order of priority.
 		styleID, err := f.File.NewStyle(r.style)
 		if err != nil {
 			return err
