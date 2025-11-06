@@ -62,14 +62,14 @@ func init() {
 	RegisterPredicate(neverPredKey, func() bool { return false })
 	RegisterPredicate(zeroPredKey, func(arg any) bool {
 		v := reflect.ValueOf(arg)
-		if v.Kind() == reflect.Pointer && !v.IsNil() {
+		for v.Kind() == reflect.Pointer && !v.IsNil() {
 			v = v.Elem()
 		}
 		return v.IsZero()
 	})
 	RegisterPredicate(notZeroPredKey, func(arg any) bool {
 		v := reflect.ValueOf(arg)
-		if v.Kind() == reflect.Pointer && !v.IsNil() {
+		for v.Kind() == reflect.Pointer && !v.IsNil() {
 			v = v.Elem()
 		}
 		return !v.IsZero()
