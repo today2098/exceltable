@@ -39,22 +39,23 @@ var (
 	}{
 		v: make([]*rule, 0),
 	}
+
 	predicates sync.Map // pair of (key, function).
 )
 
 func init() {
-	RegisterRule(-1e9-1, errorTag, &excelize.Style{
-		Fill: excelize.Fill{
-			Type:    "pattern",
-			Pattern: 1,
-			Color:   []string{"#ffaaaa"},
-		},
-	})
-	RegisterRule(-1e9-2, warnTag, &excelize.Style{
+	RegisterRule(98, warnTag, &excelize.Style{
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
 			Color:   []string{"#ffffaa"},
+		},
+	})
+	RegisterRule(99, errorTag, &excelize.Style{
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Pattern: 1,
+			Color:   []string{"#ffaaaa"},
 		},
 	})
 
