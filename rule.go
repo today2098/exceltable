@@ -80,7 +80,7 @@ func init() {
 	})
 	RegisterPredicate(notNilPredKey, func(arg any) bool {
 		v := reflect.ValueOf(arg)
-		return v.Kind() == reflect.Pointer && !v.IsNil()
+		return v.Kind() != reflect.Pointer || !v.IsNil()
 	})
 }
 
