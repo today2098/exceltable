@@ -26,14 +26,14 @@ func Wrap(file *excelize.File) (*File, error) {
 		rules: make([]*fileRule, 0, len(rules.v)),
 	}
 
-	if err := f.registerRuleTags(); err != nil {
+	if err := f.registeRuleTags(); err != nil {
 		return nil, err
 	}
 
 	return f, nil
 }
 
-func (f *File) registerRuleTags() error {
+func (f *File) registeRuleTags() error {
 	rules.Lock()
 	defer rules.Unlock()
 
@@ -44,6 +44,7 @@ func (f *File) registerRuleTags() error {
 		}
 		f.rules = append(f.rules, &fileRule{r.tag, styleID})
 	}
+
 	return nil
 }
 
