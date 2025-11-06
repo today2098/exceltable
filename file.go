@@ -16,45 +16,38 @@ type File struct {
 	rules []*fileRule
 }
 
-func NewFile() (f *File, err error) {
-	f = &File{
-		File:  excelize.NewFile(),
+func NewFile(opts ...excelize.Options) (*File, error) {
+	return Wrap(excelize.NewFile(opts...))
+}
+
+func Wrap(file *excelize.File) (*File, error) {
+	f := &File{
+		File:  file,
 		rules: make([]*fileRule, 0, len(rules.v)),
 	}
 
-	// Rename initial sheet.
-	if _, err := f.File.NewSheet("-"); err != nil {
-		return nil, err
-	}
-	if err := f.File.DeleteSheet("Sheet1"); err != nil {
-		return nil, err
-	}
-
-	if err := f.registerRuleTags(); err != nil {
+	if err := f.registeRuleTags(); err != nil {
 		return nil, err
 	}
 
 	return f, nil
 }
 
-func (f *File) SaveAs(name string) error {
-	return f.File.SaveAs(name)
-}
-
-func (f *File) Close() error {
-	return f.File.Close()
-}
-
-func (f *File) registerRuleTags() error {
+func (f *File) registeRuleTags() error {
 	rules.Lock()
 	defer rules.Unlock()
 
-	for _, r := range slices.Backward(rules.v) { // NOTE: Priority is in ascending order.
+	for _, r := range slices.Backward(rules.v) { // NOTE: Rules are sorted in ascending order of priority.
 		styleID, err := f.File.NewStyle(r.style)
 		if err != nil {
 			return err
 		}
 		f.rules = append(f.rules, &fileRule{r.tag, styleID})
 	}
+
 	return nil
+}
+
+func (f *File) SaveAs(name string, opts ...excelize.Options) error {
+	return f.File.SaveAs(name, opts...)
 }

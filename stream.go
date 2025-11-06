@@ -7,42 +7,38 @@ import (
 )
 
 type SheetWithStreamWriter[M any] struct {
-	Sheet        *Sheet[M]
+	sheetBase[M]
 	StreamWriter *excelize.StreamWriter
 }
 
 func NewSheetWithStreamWriter[M any](f *File, name, cell string, active bool) (*SheetWithStreamWriter[M], error) {
-	s, err := NewSheet[M](f, name, cell, active)
+	s := &SheetWithStreamWriter[M]{}
+	err := s.construct(f, name, cell, active)
 	if err != nil {
 		return nil, err
 	}
 
-	streamWriter, err := s.File.File.NewStreamWriter(name)
+	s.StreamWriter, err = s.File.File.NewStreamWriter(s.name)
 	if err != nil {
 		return nil, err
 	}
 
-	return &SheetWithStreamWriter[M]{
-		Sheet:        s,
-		StreamWriter: streamWriter,
-	}, nil
+	return s, nil
 }
 
 func (ssw *SheetWithStreamWriter[M]) SetHeader() error {
-	cell := ssw.Sheet.coordinatesToCellName(0, 0)
-	return ssw.StreamWriter.SetRow(cell, ssw.Sheet.header)
+	cell := ssw.coordinatesToCellName(0, 0)
+	return ssw.StreamWriter.SetRow(cell, ssw.header)
 }
 
 func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
-	ssw.Sheet.row++
-
 	ptrV := reflect.ValueOf(obj)
 	v := ptrV.Elem()
 
-	values := make([]any, 0, ssw.Sheet.tableWidth)
+	values := make([]any, 0, ssw.tableWidth)
 	col := 0
-	for i := range ssw.Sheet.numField {
-		if ssw.Sheet.skip[i] {
+	for i := range ssw.numField {
+		if ssw.skip[i] {
 			continue
 		}
 
@@ -52,7 +48,7 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 		}
 
 		styleID := 0
-		for _, rule := range ssw.Sheet.rulesList[col] {
+		for _, rule := range ssw.rulesList[col] {
 			b, err := verifyByPred(ptrV, v, field, rule.predKey)
 			if err != nil {
 				return err
@@ -70,12 +66,21 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 		col++
 	}
 
-	cell := ssw.Sheet.coordinatesToCellName(0, ssw.Sheet.row)
-	return ssw.StreamWriter.SetRow(cell, values)
+	cell := ssw.coordinatesToCellName(0, ssw.row)
+	if err := ssw.StreamWriter.SetRow(cell, values); err != nil {
+		return err
+	}
+
+	ssw.row++
+	return nil
 }
 
-func (ssw *SheetWithStreamWriter[M]) AddTable() error {
-	return ssw.StreamWriter.AddTable(ssw.Sheet.newTable(defaultTableStyle))
+func (ssw *SheetWithStreamWriter[M]) AddDefaultTable() error {
+	return ssw.AddTable(defaultTableStyle)
+}
+
+func (ssw *SheetWithStreamWriter[M]) AddTable(styleName string) error {
+	return ssw.StreamWriter.AddTable(ssw.newTable(styleName))
 }
 
 func (ssw *SheetWithStreamWriter[M]) Flush() error {
