@@ -110,43 +110,28 @@ func CountByRule[M any](obj *M, tag string) (int, error) {
 
 	numField, cnt := t.NumField(), 0
 	for i := range numField {
-		keys := strings.Split(t.Field(i).Tag.Get(tag), ",")
-		b, err := verifyByPreds(ptrV, v, v.Field(i), keys)
-		if err != nil {
-			return 0, err
-		}
-		if b {
-			cnt++
+		field := v.Field(i)
+		for key := range strings.SplitSeq(t.Field(i).Tag.Get(tag), ",") {
+			b, err := verifyByPred(ptrV, field, key)
+			if err != nil {
+				return 0, err
+			}
+			if b {
+				cnt++
+				break
+			}
 		}
 	}
 
 	return cnt, nil
 }
 
-func verifyByPreds(ptrV, v, field reflect.Value, keys []predKeyType) (bool, error) {
-	for _, key := range keys {
-		b, err := verifyByPred(ptrV, v, field, key)
-		if err != nil {
-			return false, err
-		}
-		if b {
-			return true, err
-		}
-	}
-
-	return false, nil
-}
-
-func verifyByPred(ptrV, v, field reflect.Value, key predKeyType) (bool, error) {
+func verifyByPred(ptrV, field reflect.Value, key predKeyType) (bool, error) {
 	switch key {
 	case "", "-":
 		return false, nil
 	default:
 		if pred := ptrV.MethodByName(key); pred.IsValid() {
-			return callPredicate(pred, field)
-		}
-
-		if pred := v.MethodByName(key); pred.IsValid() {
 			return callPredicate(pred, field)
 		}
 

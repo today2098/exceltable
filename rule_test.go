@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -36,6 +37,24 @@ func TestCountByRule(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "Positive",
+			args: args{
+				obj: persons[1],
+				tag: "warn",
+			},
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name: "Positive",
+			args: args{
+				obj: persons[2],
+				tag: "warn",
+			},
+			want:    2,
+			wantErr: false,
+		},
+		{
 			name: "Posotive: Custom rule",
 			args: args{
 				obj: persons[0],
@@ -56,6 +75,51 @@ func TestCountByRule(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("CountByRule() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCountByRule_Negative(t *testing.T) {
+	var n int = 1
+	_, err := CountByRule(&n, "tmp")
+	assert.Equal(t, ErrNotStructType, err)
+}
+
+func Test_verifyByPred(t *testing.T) {
+	type args struct {
+		ptrV  reflect.Value
+		field reflect.Value
+		key   predKeyType
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "Negative: undefined key",
+			args: args{
+				ptrV:  reflect.ValueOf(persons[0]),
+				field: reflect.ValueOf(persons[0]).Elem().Field(0),
+				key:   "undefine",
+			},
+			want:    false,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := verifyByPred(tt.args.ptrV, tt.args.field, tt.args.key)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("verifyByPred() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if got != tt.want {
+				t.Errorf("verifyByPred() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -140,5 +204,25 @@ func Test_callPredicate(t *testing.T) {
 				t.Errorf("callPredicate() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func BenchmarkCountByRule(b *testing.B) {
+	for b.Loop() {
+		for range 10000 {
+			for i := range len(persons) {
+				if _, err := CountByRule(persons[i], "warn"); err != nil {
+					panic(err)
+				}
+
+				if _, err := CountByRule(persons[i], "error"); err != nil {
+					panic(err)
+				}
+
+				if _, err := CountByRule(persons[i], "newface"); err != nil {
+					panic(err)
+				}
+			}
+		}
 	}
 }

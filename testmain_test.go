@@ -50,7 +50,7 @@ type person struct {
 	SpecialID     *string `warn:"notZero" error:"nil"`
 }
 
-func (p *person) IsChild() bool {
+func (p *person) IsChild() bool { // pointer receiver.
 	return !p.IsAdult()
 }
 
@@ -58,7 +58,7 @@ func (p *person) IsAdult() bool {
 	return p.Year >= 18
 }
 
-func (p *person) IsOld() bool {
+func (p person) IsOld() bool { // value receiver.
 	return p.Year >= 75
 }
 
@@ -77,7 +77,7 @@ func setup() {
 		},
 	})
 	RegisterPredicate("isNewFace", func(name string) bool {
-		var newFaces = []string{"Alice"}
+		newFaces := []string{"Alice"}
 		return slices.Contains(newFaces, name)
 	})
 }

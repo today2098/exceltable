@@ -45,7 +45,7 @@ func (s *Sheet[M]) SetRow(obj *M) error {
 		}
 
 		for _, rule := range s.rulesList[col] {
-			b, err := verifyByPred(ptrV, v, field, rule.predKey)
+			b, err := verifyByPred(ptrV, field, rule.predKey)
 			if err != nil {
 				return err
 			}

@@ -49,7 +49,7 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 
 		styleID := 0
 		for _, rule := range ssw.rulesList[col] {
-			b, err := verifyByPred(ptrV, v, field, rule.predKey)
+			b, err := verifyByPred(ptrV, field, rule.predKey)
 			if err != nil {
 				return err
 			}
