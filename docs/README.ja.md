@@ -2,23 +2,23 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/today2098/exceltable.svg)](https://pkg.go.dev/github.com/today2098/exceltable)
 
-[README (日本語)](docs/README.ja.md)
+[README (in English)](../README.md)
 
-A simple wrapper around [excelize](https://github.com/qax-os/excelize) (`github.com/xuri/excelize/v2`), providing utilities for writing Go structs to Excel tables.
+[excelize](https://github.com/qax-os/excelize) (`github.com/xuri/excelize/v2`) のシンプルなラッパーであり，Go の構造体を Excel のテーブルに書き出すための機能を提供します．
 
 ## Features
 
-- Easily write Go structs to Excel tables
-- Customize column headers via struct tags (`excel`, `csv`)
-- Apply conditional cell styles based on predicate functions
+- 容易な Go 構造体の Excel テーブルへの書き出し
+- 構造体タグを用いたヘッダ名，非表示設定のカスタマイズ
+- 述語関数に基づく条件付きセルスタイリング（背景色による強調など）
 
 ## Example
 
-Output Example:
+出力例:
 
-![spreadsheet_example](docs/image.png)
+![spreadsheet_example](image.png)
 
-Code Example:
+コード例:
 
 ```go
 package main
@@ -32,9 +32,9 @@ import (
 
 type Person struct {
     ID            string  `error:"zero"`
-    Name          string  `csv:"name" excel:"氏名" newface:"isNewFace" error:"zero"`
-    Age           int     `csv:"age" excel:"年齢" warn:"IsChild,IsOld"`
-    Address       string  `csv:"address" excel:"住所" warn:"-"`
+    Name          string  `csv:"name" excel:"Name" newface:"isNewFace" error:"zero"`
+    Age           int     `csv:"age" excel:"Age" warn:"IsChild,IsOld"`
+    Address       string  `csv:"address" excel:"Address" warn:"-"`
     AccountNumber string  `csv:"account_number" excel:"-"`
     SpecialID     *string `warn:"notZero" error:"nil"`
 }
@@ -116,11 +116,11 @@ go get github.com/today2098/exceltable@latest
 
 ## Usage
 
-### 1. Register custom style rules
+### 1. カスタムスタイルルールの登録
 
-A style rule is defined by a tag name, an Excel style (`excelize.Style`), and a priority.
+タグ名，スタイル (`excelize.Style`)，優先度を登録します．
 
-Evaluate rules highest priority first; stop at the first true.
+ルールは優先度が高いものから評価され，最初に true を返した時点で後続のルールは評価されません．
 
 ```go
 exceltable.RegisterRule(0, "newface", &excelize.Style{
@@ -132,42 +132,43 @@ exceltable.RegisterRule(0, "newface", &excelize.Style{
 })
 ```
 
-Default rules:
+デフォルトルール:
 
-|Tag|Style|Priority|
+|タグ名|スタイル内容|優先度|
 |---|---|---|
-|`warn`|Yellow background (`#ffffaa`)|98|
-|`error`|Red background (`#ffaaaa`)|99|
+|`warn`|黄色背景 (`#ffffaa`)|98|
+|`error`|赤背景 (`#ffaaaa`)|99|
 
-### 2. Register predicate functions
+### 2. スタイル適用条件（述語）の登録
 
-Predicates can be methods on the struct or standalone functions.
+構造体のメソッドまたは関数として定義します．
 
-They must be either zero-argument functions or single-argument functions taking the field type.
+無項述語関数，もしくは対象フィールドの型を引数とする1項述語関数が利用可能です．
 
 ```go
 exceltable.RegisterPredicate("isNewFace", func(name string) bool {
-    return slices.Contains([]string{"Alice"}, name)
+    newFaces := []string{"Alice"}
+    return slices.Contains(newFaces, name)
 })
 ```
 
-Default predicates:
+デフォルト条件:
 
-|Name|Description|
+|条件名|説明|
 |---|---|
-|always|Always true|
-|never|Always false|
-|zero|Field value is zero value|
-|notZero|Field value is non-zero value|
-|nil|Pointer field is nil|
-|notNil|Pointer field is not nil|
+|`always`|常に適用|
+|`never`|常に適用しない|
+|`zero`|フィールドがゼロ値|
+|`notZero`|フィールドが非ゼロ値|
+|`nil`|ポインタ型フィールドがnil|
+|`notNil`|ポインタ型フィールドが非nil|
 
-### 3. Add struct tags
+### 3. タグ指定によるカスタマイズ
 
-Header names are resolved in the following order: `excel` > `csv` > field name.
-To hide a field, use `excel:"-"`.
+ヘッダ名は「`excel` > `csv` > フィールド名」の順で決定されます．
+非表示にしたいフィールドには `excel:"-"` を設定します．
 
-Multiple predicates can be specified (OR condition).
+スタイル適用条件はカンマ区切りで複数指定できます（OR条件）．
 
 ```go
 type Person struct {
@@ -188,14 +189,23 @@ func (p Person) IsOld() bool { // value receiver.
 }
 ```
 
-### 4. Write the spreadsheet
+### 4. 書き出し
 
 ```go
-f, _:= exceltable.NewFile()
-s,_ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
+f, _ := exceltable.NewFile()
+s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
 
 s.SetHeader()
-s.SetRow(&Person{Name: "Alice"})
+
+s.SetRow(&Person{
+    ID:            "ID-123456",
+    Name:          "Alice",
+    Age:           17,
+    Address:       "",
+    AccountNumber: "0000-0000-0000-0000",
+    SpecialID:     &aliceSpecialID,
+})
+
 s.AddDefaultTable()
 s.Flush()
 
