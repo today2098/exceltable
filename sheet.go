@@ -4,10 +4,14 @@ import (
 	"reflect"
 )
 
+// Sheet provides methods to write data of type M into Excel tables.
 type Sheet[M any] struct {
 	sheetBase[M]
 }
 
+// NewSheet creates a new exceltable.Sheet with the given sheet name and starting cell.
+//
+//	s, _ := exceltable.NewSheet[MyStruct](f, "NewSheet", "A1", true)
 func NewSheet[M any](f *File, name, cell string, active bool) (*Sheet[M], error) {
 	s := &Sheet[M]{}
 	if err := s.construct(f, name, cell, active); err != nil {
@@ -17,6 +21,7 @@ func NewSheet[M any](f *File, name, cell string, active bool) (*Sheet[M], error)
 	return s, nil
 }
 
+// SetHeader writes the header row to the table.
 func (s *Sheet[M]) SetHeader() error {
 	for col := range s.tableWidth {
 		if err := s.setCellValue(col, 0, s.header[col]); err != nil {
@@ -26,6 +31,7 @@ func (s *Sheet[M]) SetHeader() error {
 	return nil
 }
 
+// SetRow writes a row of data to the table.
 func (s *Sheet[M]) SetRow(obj *M) error {
 	ptrV := reflect.ValueOf(obj)
 	v := ptrV.Elem()
@@ -73,10 +79,16 @@ func (s *Sheet[M]) setCellStyle(col, row, styleID int) error {
 	return s.File.File.SetCellStyle(s.name, cell, cell, styleID)
 }
 
+// AddDefaultTable adds a table with the default style ("TableStyleMedium6") to the sheet.
+//
+// It must be called after writing all data rows.
 func (s *Sheet[M]) AddDefaultTable() error {
 	return s.AddTable(defaultTableStyle)
 }
 
+// AddTable adds a table with the specified style to the sheet.
+//
+// It must be called after writing all data rows.
 func (s *Sheet[M]) AddTable(styleName string) error {
 	return s.File.File.AddTable(s.name, s.newTable(styleName))
 }

@@ -6,11 +6,15 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// SheetWithStreamWriter provides methods to write data of type M into Excel tables using excelize.StreamWriter.
 type SheetWithStreamWriter[M any] struct {
 	sheetBase[M]
 	StreamWriter *excelize.StreamWriter
 }
 
+// NewSheetWithStreamWriter creates a new exceltable.SheetWithStreamWriter with the given sheet name and starting cell.
+//
+//	s, _ := exceltable.NewSheetWithStreamWriter[MyStruct](f, "NewSheet", "A1", true)
 func NewSheetWithStreamWriter[M any](f *File, name, cell string, active bool) (*SheetWithStreamWriter[M], error) {
 	s := &SheetWithStreamWriter[M]{}
 	err := s.construct(f, name, cell, active)
@@ -26,11 +30,15 @@ func NewSheetWithStreamWriter[M any](f *File, name, cell string, active bool) (*
 	return s, nil
 }
 
+// SetHeader writes the header row to the table.
+//
+// It must be called before writing any data rows.
 func (ssw *SheetWithStreamWriter[M]) SetHeader() error {
 	cell := ssw.coordinatesToCellName(0, 0)
 	return ssw.StreamWriter.SetRow(cell, ssw.header)
 }
 
+// SetRow writes a row of data to the table.
 func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 	ptrV := reflect.ValueOf(obj)
 	v := ptrV.Elem()
@@ -75,14 +83,24 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 	return nil
 }
 
+// AddDefaultTable adds a table with the default style ("TableStyleMedium6") to the sheet.
+//
+// It must be called after writing all data rows.
 func (ssw *SheetWithStreamWriter[M]) AddDefaultTable() error {
 	return ssw.AddTable(defaultTableStyle)
 }
 
+// AddTable adds a table with the specified style to the sheet.
+//
+// It must be called after writing all data rows.
 func (ssw *SheetWithStreamWriter[M]) AddTable(styleName string) error {
 	return ssw.StreamWriter.AddTable(ssw.newTable(styleName))
 }
 
+// Flush flushes the stream writer buffer and ends the writing.
+// It is equivalent to excelize.StreamWriter.Flush.
+//
+// It must be called after writing all data rows and adding the table.
 func (ssw *SheetWithStreamWriter[M]) Flush() error {
 	return ssw.StreamWriter.Flush()
 }

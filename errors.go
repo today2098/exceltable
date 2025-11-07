@@ -2,9 +2,9 @@ package exceltable
 
 import "errors"
 
+// Sentinel errors.
 var (
-	ErrNotStructType = errors.New("exceltable: not struct type")
-	ErrUnknownMethod = errors.New("exceltable: unknown method")
-	ErrInvalidMethod = errors.New("exceltable: invalid method")
-	ErrUnknownTag    = errors.New("exceltable: unknown tag")
+	ErrNotStructType    = errors.New("exceltable: not struct type")
+	ErrUnknownPredicate = errors.New("exceltable: unknown predicate method")
+	ErrInvalidPredicate = errors.New("exceltable: invalid predicate method")
 )

@@ -12,12 +12,11 @@ import (
 type ruleTagType = string
 type predKeyType = string
 
+// Rule tags and predicate keys.
 const (
-	// Rule tag name.
 	warnTag  ruleTagType = "warn"
 	errorTag ruleTagType = "error"
 
-	// Rule predicate key name.
 	alwaysPredKey  predKeyType = "always"
 	neverPredKey   predKeyType = "never"
 	zeroPredKey    predKeyType = "zero"
@@ -32,6 +31,7 @@ type rule struct {
 	style    *excelize.Style
 }
 
+// Global variables for rules and predicates.
 var (
 	rules = struct {
 		sync.Mutex
@@ -48,14 +48,14 @@ func init() {
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
-			Color:   []string{"#ffffaa"},
+			Color:   []string{"#ffffaa"}, // light yellow
 		},
 	})
 	RegisterRule(99, errorTag, &excelize.Style{
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
-			Color:   []string{"#ffaaaa"},
+			Color:   []string{"#ffaaaa"}, // light red
 		},
 	})
 
@@ -85,6 +85,10 @@ func init() {
 	})
 }
 
+// RegisterRule registers a new rule with the given priority, tag, and style.
+// Rules with higher priority values are applied earlier:
+//
+//	exceltable.RegisterRule(0, "customTag", &excelize.Style{ ... })
 func RegisterRule(priority int, tag ruleTagType, style *excelize.Style) {
 	rules.Lock()
 	defer rules.Unlock()
@@ -95,10 +99,14 @@ func RegisterRule(priority int, tag ruleTagType, style *excelize.Style) {
 	})
 }
 
+// RegisterPredicate registers a new predicate function with the given key:
+//
+//	exceltable.RegisterPredicate("isAlice", func(name string) bool { return name == "Alice" })
 func RegisterPredicate(key predKeyType, pred any) {
 	predicates.Store(key, pred)
 }
 
+// CountByRule counts the number of fields in obj that satisfy the predicate associated with the given rule tag.
 func CountByRule[M any](obj *M, tag string) (int, error) {
 	t := reflect.TypeFor[M]()
 	if t.Kind() != reflect.Struct {
@@ -140,12 +148,12 @@ func verifyByPred(ptrV, field reflect.Value, key predKeyType) (bool, error) {
 		}
 	}
 
-	return false, ErrUnknownMethod
+	return false, ErrUnknownPredicate
 }
 
 func callPredicate(pred, arg reflect.Value) (bool, error) {
 	if !(pred.Type().NumOut() == 1 && pred.Type().Out(0).Kind() == reflect.Bool) {
-		return false, ErrInvalidMethod
+		return false, ErrInvalidPredicate
 	}
 
 	if pred.Type().NumIn() == 0 {
@@ -156,5 +164,5 @@ func callPredicate(pred, arg reflect.Value) (bool, error) {
 		return pred.Call([]reflect.Value{arg})[0].Bool(), nil // unary predicate
 	}
 
-	return false, ErrInvalidMethod
+	return false, ErrInvalidPredicate
 }
