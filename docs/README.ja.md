@@ -1,5 +1,6 @@
 # exceltable
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/today2098/exceltable)](https://goreportcard.com/report/github.com/today2098/exceltable)
 [![Go Reference](https://pkg.go.dev/badge/github.com/today2098/exceltable.svg)](https://pkg.go.dev/github.com/today2098/exceltable)
 
 [README (in English)](../README.md)
