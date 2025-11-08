@@ -1,24 +1,22 @@
 package exceltable
 
-import (
-	"reflect"
-)
+import "reflect"
 
-// Sheet provides methods to write data of type M into Excel tables.
+// Sheet provides methods to write data of type M into spreadsheet table.
 type Sheet[M any] struct {
-	sheetBase[M]
+	*sheetBase[M]
 }
 
 // NewSheet creates a new exceltable.Sheet with the given sheet name and starting cell.
 //
-//	s, _ := exceltable.NewSheet[MyStruct](f, "NewSheet", "A1", true)
+//	s, _ := exceltable.NewSheet[YourStruct](f, "NewSheet", "A1", true)
 func NewSheet[M any](f *File, name, cell string, active bool) (*Sheet[M], error) {
-	s := &Sheet[M]{}
-	if err := s.construct(f, name, cell, active); err != nil {
+	sb, err := newSheetBase[M](f, name, cell, active)
+	if err != nil {
 		return nil, err
 	}
 
-	return s, nil
+	return &Sheet[M]{sb}, nil
 }
 
 // SetHeader writes the header row to the table.
@@ -79,14 +77,14 @@ func (s *Sheet[M]) setCellStyle(col, row, styleID int) error {
 	return s.File.File.SetCellStyle(s.name, cell, cell, styleID)
 }
 
-// AddDefaultTable adds a table with the default style ("TableStyleMedium6") to the sheet.
+// AddDefaultTable creates a table with the default style to the sheet.
 //
 // It must be called after writing all data rows.
 func (s *Sheet[M]) AddDefaultTable() error {
-	return s.AddTable(defaultTableStyle)
+	return s.AddTable(DefaultTableStyle)
 }
 
-// AddTable adds a table with the specified style to the sheet.
+// AddTable creates a table with the specified style name to the sheet.
 //
 // It must be called after writing all data rows.
 func (s *Sheet[M]) AddTable(styleName string) error {

@@ -8,57 +8,60 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// Tags indicating header values.
 const (
 	csvTag   string = "csv"
 	excelTag string = "excel"
-
-	defaultTableStyle = "TableStyleMedium6"
 )
 
+// Default table style name.
+const DefaultTableStyle = "TableStyleMedium6"
+
+// sheetRule represents relation between predicate key and style ID.
 type sheetRule struct {
 	predKey predKeyType
 	styleID int
 }
 
 type sheetBase[M any] struct {
-	File            *File
-	name            string
-	x, y            int
-	row, tableWidth int
-	numField        int
-	skip            []bool
-	header          []any
-	rulesList       [][]*sheetRule
+	File       *File
+	name       string         // sheet name
+	x, y       int            // starting cell coordinates
+	row        int            // current number of rows
+	tableWidth int            // table width (number of columns)
+	numField   int            // number of struct fields
+	skip       []bool         // whether to skip each struct field
+	header     []any          // header values
+	rulesList  [][]*sheetRule // rules for each column
 }
 
-func (s *sheetBase[M]) construct(f *File, name, cell string, active bool) error {
-	s.File, s.name, s.row = f, name, 1
-
-	idx, err := s.File.File.NewSheet(s.name)
-	if err != nil {
-		return err
-	}
-	if active {
-		f.File.SetActiveSheet(idx)
-	}
-
-	if s.x, s.y, err = excelize.CellNameToCoordinates(cell); err != nil {
-		return err
-	}
-
+func newSheetBase[M any](f *File, name, cell string, active bool) (*sheetBase[M], error) {
 	t := reflect.TypeFor[M]()
 	if t.Kind() != reflect.Struct {
-		return ErrNotStructType
+		return nil, ErrNotStructType
 	}
 
-	s.tableWidth, s.numField = 0, t.NumField()
-	s.skip = make([]bool, s.numField)
-	s.header = make([]any, 0, s.numField)
-	s.rulesList = make([][]*sheetRule, 0, s.numField)
-	for i := range s.numField {
+	idx, err := f.NewSheet(name)
+	if err != nil {
+		return nil, err
+	}
+	if active {
+		f.SetActiveSheet(idx)
+	}
+
+	x, y, err := excelize.CellNameToCoordinates(cell)
+	if err != nil {
+		return nil, err
+	}
+
+	tableWidth, numField := 0, t.NumField()
+	skip := make([]bool, numField)
+	header := make([]any, 0, numField)
+	rulesList := make([][]*sheetRule, 0, numField)
+	for i := range numField {
 		field := t.Field(i)
 		if field.PkgPath != "" { // field is unexported.
-			s.skip[i] = true
+			skip[i] = true
 			continue
 		}
 
@@ -71,23 +74,34 @@ func (s *sheetBase[M]) construct(f *File, name, cell string, active bool) error 
 		case "":
 			h = field.Name
 		case "-":
-			s.skip[i] = true
+			skip[i] = true
 			continue
 		}
 
-		s.header = append(s.header, h)
-		s.tableWidth++
+		header = append(header, h)
+		tableWidth++
 
 		rules := make([]*sheetRule, 0)
-		for _, fileRule := range s.File.rules {
-			for key := range strings.SplitSeq(field.Tag.Get(fileRule.tag), ",") {
-				rules = append(rules, &sheetRule{key, fileRule.styleID})
+		for _, rule := range f.rules {
+			for key := range strings.SplitSeq(field.Tag.Get(rule.tag), ",") {
+				rules = append(rules, &sheetRule{key, rule.styleID})
 			}
 		}
-		s.rulesList = append(s.rulesList, rules)
+		rulesList = append(rulesList, rules)
 	}
 
-	return nil
+	return &sheetBase[M]{
+		File:       f,
+		name:       name,
+		x:          x,
+		y:          y,
+		row:        1,
+		tableWidth: tableWidth,
+		numField:   numField,
+		skip:       skip,
+		header:     header,
+		rulesList:  rulesList,
+	}, nil
 }
 
 func (s *sheetBase[M]) newTable(styleName string) *excelize.Table {
@@ -100,10 +114,10 @@ func (s *sheetBase[M]) newTable(styleName string) *excelize.Table {
 	}
 }
 
-func (s *sheetBase[M]) coordinatesToCellName(col, row int) string {
-	cell, err := excelize.CoordinatesToCellName(s.x+col, s.y+row)
+func (s *sheetBase[M]) coordinatesToCellName(col, row int, abs ...bool) string {
+	cell, err := excelize.CoordinatesToCellName(s.x+col, s.y+row, abs...)
 	if err != nil {
-		panic(err)
+		panic(err) // This should never happen when col and row are non-negative.
 	}
 	return cell
 }

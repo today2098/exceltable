@@ -1,32 +1,32 @@
-// Package exceltable provides helper functions for writing Go structs to Excel tables.
+// Package exceltable is a simple wrapper around [excelize],
+// providing utilities for writing Go structs to spreadsheet tables.
 //
-// It wraps [excelize] to offer a lightweight interface for table generation,
-// including header customization via struct tags and predicate-based conditional cell styling.
+// It supports customizable column headers via struct tags
+// and conditional cell styling based on predicate functions.
 //
 // [excelize]: https://github.com/qax-os/excelize
 package exceltable
 
 import (
+	"io"
 	"slices"
 
 	"github.com/xuri/excelize/v2"
 )
 
+// fileRule represents relation between rule tag and style ID.
 type fileRule struct {
 	tag     ruleTagType
 	styleID int
 }
 
-// File wraps excelize.File and saves pairs of rule tag and style ID.
+// File wraps excelize.File and holds style rules.
 type File struct {
-	File  *excelize.File
-	rules []*fileRule
+	*excelize.File
+	rules []*fileRule // NOTE: Rules are stored in descending order of priority.
 }
 
-// NewFile creates a new exceltable.File:
-//
-//	f, _ := exceltable.NewFile()
-//
+// NewFile creates a new exceltable.File and returns its pointer.
 // It is equivalent to:
 //
 //	f, _ := exceltable.Wrap(excelize.NewFile())
@@ -34,42 +34,52 @@ func NewFile(opts ...excelize.Options) (*File, error) {
 	return Wrap(excelize.NewFile(opts...))
 }
 
-// Wrap wraps an existing excelize.File into exceltable.File:
+// OpenFile opens an existing spreadsheet file and returns *exceltable.File wrapping it.
+func OpenFile(filename string, opts ...excelize.Options) (*File, error) {
+	f, err := excelize.OpenFile(filename, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return Wrap(f)
+}
+
+// OpenReader read data stream from io.Reader and returns *exceltable.File wrapping it.
+func OpenReader(r io.Reader, opts ...excelize.Options) (*File, error) {
+	f, err := excelize.OpenReader(r, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return Wrap(f)
+}
+
+// Wrap wraps an existing excelize.File into exceltable.File and returns its pointer:
 //
 //	file, _ := excelize.OpenFile("Book1.xlsx")
 //	f, _ := exceltable.Wrap(file)
 func Wrap(file *excelize.File) (*File, error) {
-	f := &File{
-		File:  file,
-		rules: make([]*fileRule, 0, len(rules.v)),
-	}
-
-	if err := f.registeRuleTags(); err != nil {
+	rules, err := createFileRules(file)
+	if err != nil {
 		return nil, err
 	}
 
-	return f, nil
+	return &File{
+		File:  file,
+		rules: rules,
+	}, nil
 }
 
-func (f *File) registeRuleTags() error {
+func createFileRules(file *excelize.File) ([]*fileRule, error) {
 	rules.Lock()
 	defer rules.Unlock()
 
+	fileRules := make([]*fileRule, 0, len(rules.v))
 	for _, r := range slices.Backward(rules.v) { // NOTE: Rules are sorted in ascending order of priority.
-		styleID, err := f.File.NewStyle(r.style)
+		styleID, err := file.NewStyle(r.style)
 		if err != nil {
-			return err
+			return nil, err
 		}
-		f.rules = append(f.rules, &fileRule{r.tag, styleID})
+		fileRules = append(fileRules, &fileRule{r.tag, styleID})
 	}
 
-	return nil
-}
-
-// SaveAs saves contents to the Excel file specified by name.
-// It is equivalent to excelize.File.SaveAs:
-//
-//	err := f.SaveAs("Book1.xlsx")
-func (f *File) SaveAs(name string, opts ...excelize.Options) error {
-	return f.File.SaveAs(name, opts...)
+	return fileRules, nil
 }
