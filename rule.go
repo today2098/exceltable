@@ -10,13 +10,17 @@ import (
 )
 
 type ruleTagType = string
-type predKeyType = string
 
-// Rule tags and predicate keys.
+// Rule tags.
 const (
 	warnTag  ruleTagType = "warn"
 	errorTag ruleTagType = "error"
+)
 
+type predKeyType = string
+
+// Predicate keys.
+const (
 	alwaysPredKey  predKeyType = "always"
 	neverPredKey   predKeyType = "never"
 	zeroPredKey    predKeyType = "zero"
@@ -31,17 +35,17 @@ type rule struct {
 	style    *excelize.Style
 }
 
-// Global variables for rules and predicates.
-var (
-	rules = struct {
-		sync.Mutex
-		v []*rule
-	}{
-		v: make([]*rule, 0),
-	}
+// rules is a list of registered rules, sorted by priority in ascending order.
+var rules = struct {
+	sync.Mutex
+	v []*rule
+}{
+	v: make([]*rule, 0),
+}
 
-	predicates sync.Map // pair of (key, function).
-)
+// predicates is a map of registered predicate functions with key.
+// pair of (key, function).
+var predicates sync.Map
 
 func init() {
 	RegisterRule(98, warnTag, &excelize.Style{
@@ -85,7 +89,7 @@ func init() {
 	})
 }
 
-// RegisterRule registers a new rule with the given priority, tag, and style.
+// RegisterRule registers a new rule with the given priority, tag name, and style.
 // Rules with higher priority values are applied earlier:
 //
 //	exceltable.RegisterRule(0, "customTag", &excelize.Style{ ... })
@@ -99,14 +103,29 @@ func RegisterRule(priority int, tag ruleTagType, style *excelize.Style) {
 	})
 }
 
-// RegisterPredicate registers a new predicate function with the given key:
+// DeleteAllRules deletes all registered rules.
+func DeleteAllRules() {
+	rules.Lock()
+	defer rules.Unlock()
+
+	rules.v = make([]*rule, 0)
+}
+
+// RegisterPredicate registers a new predicate function with key:
 //
-//	exceltable.RegisterPredicate("isAlice", func(name string) bool { return name == "Alice" })
+//	exceltable.RegisterPredicate("isAlice", func(name string) bool {
+//		return name == "Alice"
+//	})
 func RegisterPredicate(key predKeyType, pred any) {
 	predicates.Store(key, pred)
 }
 
-// CountByRule counts the number of fields in obj that satisfy the predicate associated with the given rule tag.
+// DeleteAllPredicates deletes all registered predicates.
+func DeleteAllPredicates() {
+	predicates.Clear()
+}
+
+// CountByRule counts the number of fields in obj that satisfy the predicate associated with the rule tag.
 func CountByRule[M any](obj *M, tag string) (int, error) {
 	t := reflect.TypeFor[M]()
 	if t.Kind() != reflect.Struct {
@@ -134,6 +153,7 @@ func CountByRule[M any](obj *M, tag string) (int, error) {
 	return cnt, nil
 }
 
+// verifyByPred verifies whether field satisfies the predicate identified by key.
 func verifyByPred(ptrV, field reflect.Value, key predKeyType) (bool, error) {
 	switch key {
 	case "", "-":
@@ -151,6 +171,10 @@ func verifyByPred(ptrV, field reflect.Value, key predKeyType) (bool, error) {
 	return false, ErrUnknownPredicate
 }
 
+// callPredicate calls the predicate function pred with arg.
+//
+// NOTE: pred must be either a nulary predicate function returning bool,
+// or a unary predicate function taking arg's type and returning bool.
 func callPredicate(pred, arg reflect.Value) (bool, error) {
 	if !(pred.Type().NumOut() == 1 && pred.Type().Out(0).Kind() == reflect.Bool) {
 		return false, ErrInvalidPredicate

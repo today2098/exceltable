@@ -11,21 +11,21 @@ type Person struct {
 	ID            string  `error:"zero"`
 	Name          string  `csv:"name" excel:"氏名" newface:"isNewFace" error:"zero"`
 	Age           int     `csv:"age" excel:"年齢" warn:"IsChild,IsOld"`
-	Address       string  `csv:"address" excel:"住所" warn:"-"`
+	Address       string  `csv:"address" excel:"住所"`
 	AccountNumber string  `csv:"account_number" excel:"-"`
 	SpecialID     *string `warn:"notZero" error:"nil"`
 }
 
-func (p *Person) IsChild() bool {
+func (p *Person) IsChild() bool { // pointer receiver.
 	return p.Age < 18
 }
 
-func (p Person) IsOld() bool {
+func (p Person) IsOld() bool { // value receiver.
 	return 75 <= p.Age
 }
 
 func init() {
-	exceltable.RegisterRule(0, "newface", &excelize.Style{
+	exceltable.RegisterRule(0, "newface", &excelize.Style{ // custom style rule.
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
@@ -33,7 +33,7 @@ func init() {
 		},
 	})
 
-	exceltable.RegisterPredicate("isNewFace", func(name string) bool {
+	exceltable.RegisterPredicate("isNewFace", func(name string) bool { // predicate function.
 		newFaces := []string{"Alice"}
 		return slices.Contains(newFaces, name)
 	})
@@ -70,8 +70,8 @@ func main() {
 	}
 
 	f, _ := exceltable.NewFile()
+	s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "NewSheet", "A1", true)
 
-	s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
 	s.SetHeader()
 
 	s.SetRow(alice)
@@ -81,5 +81,5 @@ func main() {
 	s.AddDefaultTable()
 	s.Flush()
 
-	f.SaveAs("people.xlsx")
+	f.SaveAs("NewBook.xlsx")
 }

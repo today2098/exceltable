@@ -3,6 +3,7 @@ module github.com/today2098/exceltable
 go 1.25.3
 
 require (
+	github.com/google/go-cmp v0.7.0
 	github.com/stretchr/testify v1.11.1
 	github.com/xuri/excelize/v2 v2.10.0
 )

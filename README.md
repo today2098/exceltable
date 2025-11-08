@@ -4,13 +4,13 @@
 
 [README (日本語)](docs/README.ja.md)
 
-A simple wrapper around [excelize](https://github.com/qax-os/excelize) (`github.com/xuri/excelize/v2`), providing utilities for writing Go structs to Excel tables.
+A simple wrapper around [excelize](https://github.com/qax-os/excelize) (`github.com/xuri/excelize/v2`), providing utilities for writing Go structs to spreadsheet tables.
 
 ## Features
 
-- Easily write Go structs to Excel tables
-- Customize column headers via struct tags (`excel`, `csv`)
-- Apply conditional cell styles based on predicate functions
+- Map Go structs to spreadsheet tables
+- Customize column headers and visibility via struct tags (`excel`)
+- Apply conditional cell styles based on predicate functions (e.g., highlight cells with background colors)
 
 ## Example
 
@@ -21,34 +21,25 @@ Output Example:
 Code Example:
 
 ```go
-package main
-
-import (
-    "slices"
-
-    "github.com/today2098/exceltable"
-    "github.com/xuri/excelize/v2"
-)
-
 type Person struct {
     ID            string  `error:"zero"`
     Name          string  `csv:"name" excel:"氏名" newface:"isNewFace" error:"zero"`
     Age           int     `csv:"age" excel:"年齢" warn:"IsChild,IsOld"`
-    Address       string  `csv:"address" excel:"住所" warn:"-"`
+    Address       string  `csv:"address" excel:"住所"`
     AccountNumber string  `csv:"account_number" excel:"-"`
     SpecialID     *string `warn:"notZero" error:"nil"`
 }
 
-func (p *person) IsChild() bool { // pointer receiver.
+func (p *Person) IsChild() bool { // pointer receiver.
     return p.Age < 18
 }
 
-func (p person) IsOld() bool { // value receiver.
+func (p Person) IsOld() bool { // value receiver.
     return 75 <= p.Age
 }
 
 func init() {
-    exceltable.RegisterRule(0, "newface", &excelize.Style{ // custom style tag.
+    exceltable.RegisterRule(0, "newface", &excelize.Style{ // custom style rule.
         Fill: excelize.Fill{
             Type:    "pattern",
             Pattern: 1,
@@ -93,8 +84,8 @@ func main() {
     }
 
     f, _ := exceltable.NewFile()
-    s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
-    
+    s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "NewSheet", "A1", true)
+
     s.SetHeader()
 
     s.SetRow(alice)
@@ -104,7 +95,7 @@ func main() {
     s.AddDefaultTable()
     s.Flush()
 
-    f.SaveAs("people.xlsx")
+    f.SaveAs("NewBook.xlsx")
 }
 ```
 
@@ -116,11 +107,11 @@ go get github.com/today2098/exceltable@latest
 
 ## Usage
 
-### 1. Register custom style rules
+### 1. Register Style Rules
 
-A style rule is defined by a tag name, an Excel style (`excelize.Style`), and a priority.
+First, register a style rule by specifying the "tag name," "style (`excelize.Style`)," and "priority."
 
-Evaluate rules highest priority first; stop at the first true.
+Rules are evaluated in order of descending priority, and once a rule returns `true`, subsequent rules are not evaluated.
 
 ```go
 exceltable.RegisterRule(0, "newface", &excelize.Style{
@@ -139,15 +130,18 @@ Default rules:
 |`warn`|Yellow background (`#ffffaa`)|98|
 |`error`|Red background (`#ffaaaa`)|99|
 
-### 2. Register predicate functions
+### 2. Register Style Predicates
 
-Predicates can be methods on the struct or standalone functions.
+Next, register predicates that define the conditions under which a style is applied.
 
-They must be either zero-argument functions or single-argument functions taking the field type.
+A predicate can be a method on the struct or a standalone function.
+
+Predicate functions must either take no arguments or a single argument corresponding to the field type.
 
 ```go
 exceltable.RegisterPredicate("isNewFace", func(name string) bool {
-    return slices.Contains([]string{"Alice"}, name)
+    newFaces := []string{"Alice"}
+    return slices.Contains(newFaces, name)
 })
 ```
 
@@ -155,51 +149,57 @@ Default predicates:
 
 |Name|Description|
 |---|---|
-|always|Always true|
-|never|Always false|
-|zero|Field value is zero value|
-|notZero|Field value is non-zero value|
-|nil|Pointer field is nil|
-|notNil|Pointer field is not nil|
+|`always`|Always true|
+|`never`|Always false|
+|`zero`|Field value is zero value|
+|`notZero`|Field value is non-zero value|
+|`nil`|Pointer field is nil|
+|`notNil`|Pointer field is not nil|
 
-### 3. Add struct tags
+### 3. Add Struct Tags
+
+Add tags to struct fields to specify column headers and style application conditions.
 
 Header names are resolved in the following order: `excel` > `csv` > field name.
 To hide a field, use `excel:"-"`.
 
-Multiple predicates can be specified (OR condition).
+Multiple predicates can be specified as a comma-separated list (OR condition).
 
 ```go
 type Person struct {
     ID            string  `error:"zero"`
     Name          string  `csv:"name" excel:"氏名" newface:"isNewFace" error:"zero"`
     Age           int     `csv:"age" excel:"年齢" warn:"IsChild,IsOld"`
-    Address       string  `csv:"address" excel:"住所" warn:"-"`
+    Address       string  `csv:"address" excel:"住所"`
     AccountNumber string  `csv:"account_number" excel:"-"`
     SpecialID     *string `warn:"notZero" error:"nil"`
 }
 
-func (p *Person) IsChild() bool { // pointer receiver.
+func (p *Person) IsChild() bool {
     return p.Age < 18
 }
 
-func (p Person) IsOld() bool { // value receiver.
+func (p Person) IsOld() bool {
     return 75 <= p.Age
 }
 ```
 
-### 4. Write the spreadsheet
+### 4. Write to a Spreadsheet
 
 ```go
-f, _:= exceltable.NewFile()
-s,_ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
+f, _ := exceltable.NewFile()
+s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "NewSheet", "A1", true)
 
 s.SetHeader()
-s.SetRow(&Person{Name: "Alice"})
+
+s.SetRow(alice)
+s.SetRow(bob)
+s.SetRow(carol)
+
 s.AddDefaultTable()
 s.Flush()
 
-f.SaveAs("people.xlsx")
+f.SaveAs("NewBook.xlsx")
 ```
 
 ## License

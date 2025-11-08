@@ -55,7 +55,7 @@ func TestCountByRule(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Posotive: Custom rule",
+			name: "Posotive: custom rule",
 			args: args{
 				obj: persons[0],
 				tag: "newface",
