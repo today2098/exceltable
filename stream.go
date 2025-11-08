@@ -55,10 +55,12 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 
 		styleID := 0
 		for _, rule := range ssw.rulesList[col] {
-			b, err := verifyByPred(ptrV, field, rule.predKey)
+			pred := rule.bind(ptrV)
+			b, err := callPredicate(pred, field)
 			if err != nil {
 				return err
 			}
+
 			if b {
 				styleID = rule.styleID
 				break // NOTE: Break to prevent overwriting.

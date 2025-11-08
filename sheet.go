@@ -49,10 +49,12 @@ func (s *Sheet[M]) SetRow(obj *M) error {
 		}
 
 		for _, rule := range s.rulesList[col] {
-			b, err := verifyByPred(ptrV, field, rule.predKey)
+			pred := rule.bind(ptrV)
+			b, err := callPredicate(pred, field)
 			if err != nil {
 				return err
 			}
+
 			if b {
 				if err := s.setCellStyle(col, s.row, rule.styleID); err != nil {
 					return err

@@ -19,8 +19,46 @@ const DefaultTableStyle = "TableStyleMedium6"
 
 // sheetRule represents relation between predicate key and style ID.
 type sheetRule struct {
-	predKey predKeyType
-	styleID int
+	pred     reflect.Value
+	funcT    reflect.Type
+	isMethod bool
+	styleID  int
+}
+
+func newSheetRule(pred reflect.Value, isMethod bool, styleID int) *sheetRule {
+	if !isMethod {
+		return &sheetRule{
+			pred:     pred,
+			isMethod: false,
+			styleID:  styleID,
+		}
+	}
+
+	n, m := pred.Type().NumIn(), pred.Type().NumOut()
+	in, out := make([]reflect.Type, n), make([]reflect.Type, m)
+	for i := range n {
+		in[i] = pred.Type().In(i)
+	}
+	for i := range m {
+		out[i] = pred.Type().Out(i)
+	}
+
+	return &sheetRule{
+		pred:     pred,
+		funcT:    reflect.FuncOf(in[1:], out, false),
+		isMethod: true,
+		styleID:  styleID,
+	}
+}
+
+func (sr *sheetRule) bind(ptrV reflect.Value) reflect.Value {
+	if !sr.isMethod {
+		return sr.pred
+	}
+
+	return reflect.MakeFunc(sr.funcT, func(in []reflect.Value) []reflect.Value {
+		return sr.pred.Call(append([]reflect.Value{ptrV}, in...))
+	})
 }
 
 type sheetBase[M any] struct {
@@ -40,6 +78,7 @@ func newSheetBase[M any](f *File, name, cell string, active bool) (*sheetBase[M]
 	if t.Kind() != reflect.Struct {
 		return nil, ErrNotStructType
 	}
+	ptrT := reflect.PointerTo(t)
 
 	idx, err := f.NewSheet(name)
 	if err != nil {
@@ -84,7 +123,22 @@ func newSheetBase[M any](f *File, name, cell string, active bool) (*sheetBase[M]
 		rules := make([]*sheetRule, 0)
 		for _, rule := range f.rules {
 			for key := range strings.SplitSeq(field.Tag.Get(rule.tag), ",") {
-				rules = append(rules, &sheetRule{key, rule.styleID})
+				switch key {
+				case "", "-":
+					// ignore
+				default:
+					if method, ok := ptrT.MethodByName(key); ok {
+						rules = append(rules, newSheetRule(method.Func, true, rule.styleID))
+						break
+					}
+
+					if function, ok := predicates.Load(key); ok {
+						rules = append(rules, newSheetRule(reflect.ValueOf(function), false, rule.styleID))
+						break
+					}
+
+					return nil, ErrUnknownPredicate
+				}
 			}
 		}
 		rulesList = append(rulesList, rules)
