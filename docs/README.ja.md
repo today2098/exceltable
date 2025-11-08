@@ -1,5 +1,6 @@
 # exceltable
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/today2098/exceltable)](https://goreportcard.com/report/github.com/today2098/exceltable)
 [![Go Reference](https://pkg.go.dev/badge/github.com/today2098/exceltable.svg)](https://pkg.go.dev/github.com/today2098/exceltable)
 
 [README (in English)](../README.md)
@@ -109,7 +110,7 @@ go get github.com/today2098/exceltable@latest
 
 ### 1. スタイルルールの登録
 
-はじめに，「タグ名」「スタイル (`excelize.Style`)」「優先度」を指定し，スタイルルールを登録します．
+はじめに，「タグ名」「`excelize.Style`」「優先度」を指定し，スタイルルールを登録します．
 
 ルールは優先度が高いものから評価され，最初に true を返した時点で後続のルールは評価されません．
 

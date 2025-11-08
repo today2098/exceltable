@@ -1,5 +1,6 @@
 # exceltable
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/today2098/exceltable)](https://goreportcard.com/report/github.com/today2098/exceltable)
 [![Go Reference](https://pkg.go.dev/badge/github.com/today2098/exceltable.svg)](https://pkg.go.dev/github.com/today2098/exceltable)
 
 [README (日本語)](docs/README.ja.md)
@@ -109,7 +110,7 @@ go get github.com/today2098/exceltable@latest
 
 ### 1. Register Style Rules
 
-First, register a style rule by specifying the "tag name," "style (`excelize.Style`)," and "priority."
+First, register a style rule by specifying the tag name, `excelize.Style`, and priority.
 
 Rules are evaluated in order of descending priority, and once a rule returns `true`, subsequent rules are not evaluated.
 
