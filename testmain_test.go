@@ -8,7 +8,7 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-var specialID = []string{
+var specialIDs = []string{
 	"",
 	"",
 	"SID-999999",
@@ -16,28 +16,28 @@ var specialID = []string{
 
 var persons = []*person{
 	{
-		ID:            "ID-123456",
-		Name:          "Alice",
-		Age:           17,
-		Address:       "",
-		AccountNumber: "0000-0000-0000-0000",
-		SpecialID:     &specialID[0],
+		ID:            "ID-123456",           //
+		Name:          "Alice",               // newface
+		Age:           17,                    // warn
+		Address:       "",                    //
+		AccountNumber: "0000-0000-0000-0000", // omitted
+		SpecialID:     &specialIDs[0],        // warn
 	},
 	{
-		ID:            "ID-112358",
-		Name:          "Bob",
-		Age:           32,
-		Address:       "Boston",
-		AccountNumber: "1111-1111-1111-1111",
-		SpecialID:     nil,
+		ID:            "ID-112358",           //
+		Name:          "Bob",                 //
+		Age:           32,                    //
+		Address:       "Boston",              //
+		AccountNumber: "1111-1111-1111-1111", // omitted
+		SpecialID:     nil,                   // error
 	},
 	{
-		ID:            "",
-		Name:          "Carol",
-		Age:           100,
-		Address:       "京都",
-		AccountNumber: "",
-		SpecialID:     &specialID[2],
+		ID:            "",             // error
+		Name:          "Carol",        //
+		Age:           100,            // warn
+		Address:       "京都",           //
+		AccountNumber: "",             // omitted
+		SpecialID:     &specialIDs[2], // warn
 	},
 }
 
@@ -65,7 +65,7 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	RegisterRule(0, "newface", &excelize.Style{ // custom style tag.
+	RegisterRule(0, "newface", &excelize.Style{ // custom style rule.
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,

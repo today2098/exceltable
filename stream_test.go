@@ -37,6 +37,10 @@ func BenchmarkWriteWithStreamWriter(b *testing.B) {
 			b.Error(err)
 		}
 
+		if err := ssw.Flush(); err != nil {
+			b.Error(err)
+		}
+
 		path := filepath.Join(b.TempDir(), "test.xlsx")
 		if err := f.SaveAs(path); err != nil {
 			b.Error(err)

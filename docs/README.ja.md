@@ -4,11 +4,11 @@
 
 [README (in English)](../README.md)
 
-[excelize](https://github.com/qax-os/excelize) (`github.com/xuri/excelize/v2`) のシンプルなラッパーであり，Go の構造体を Excel のテーブルに書き出すための機能を提供します．
+[excelize](https://github.com/qax-os/excelize) (`github.com/xuri/excelize/v2`) のシンプルなラッパーであり，Go の構造体をスプレッドシートのテーブルに書き出す機能を提供します．
 
 ## Features
 
-- 容易な Go 構造体の Excel テーブルへの書き出し
+- 構造体とスプレッドシートのテーブル間のマッピング
 - 構造体タグを用いたヘッダ名，非表示設定のカスタマイズ
 - 述語関数に基づく条件付きセルスタイリング（背景色による強調など）
 
@@ -21,34 +21,25 @@
 コード例:
 
 ```go
-package main
-
-import (
-    "slices"
-
-    "github.com/today2098/exceltable"
-    "github.com/xuri/excelize/v2"
-)
-
 type Person struct {
     ID            string  `error:"zero"`
-    Name          string  `csv:"name" excel:"Name" newface:"isNewFace" error:"zero"`
-    Age           int     `csv:"age" excel:"Age" warn:"IsChild,IsOld"`
-    Address       string  `csv:"address" excel:"Address" warn:"-"`
+    Name          string  `csv:"name" excel:"氏名" newface:"isNewFace" error:"zero"`
+    Age           int     `csv:"age" excel:"年齢" warn:"IsChild,IsOld"`
+    Address       string  `csv:"address" excel:"住所"`
     AccountNumber string  `csv:"account_number" excel:"-"`
     SpecialID     *string `warn:"notZero" error:"nil"`
 }
 
-func (p *person) IsChild() bool { // pointer receiver.
+func (p *Person) IsChild() bool { // pointer receiver.
     return p.Age < 18
 }
 
-func (p person) IsOld() bool { // value receiver.
+func (p Person) IsOld() bool { // value receiver.
     return 75 <= p.Age
 }
 
 func init() {
-    exceltable.RegisterRule(0, "newface", &excelize.Style{ // custom style tag.
+    exceltable.RegisterRule(0, "newface", &excelize.Style{ // custom style rule.
         Fill: excelize.Fill{
             Type:    "pattern",
             Pattern: 1,
@@ -93,8 +84,8 @@ func main() {
     }
 
     f, _ := exceltable.NewFile()
-    s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
-    
+    s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "NewSheet", "A1", true)
+
     s.SetHeader()
 
     s.SetRow(alice)
@@ -104,7 +95,7 @@ func main() {
     s.AddDefaultTable()
     s.Flush()
 
-    f.SaveAs("people.xlsx")
+    f.SaveAs("NewBook.xlsx")
 }
 ```
 
@@ -116,9 +107,9 @@ go get github.com/today2098/exceltable@latest
 
 ## Usage
 
-### 1. カスタムスタイルルールの登録
+### 1. スタイルルールの登録
 
-タグ名，スタイル (`excelize.Style`)，優先度を登録します．
+はじめに，「タグ名」「スタイル (`excelize.Style`)」「優先度」を指定し，スタイルルールを登録します．
 
 ルールは優先度が高いものから評価され，最初に true を返した時点で後続のルールは評価されません．
 
@@ -134,16 +125,17 @@ exceltable.RegisterRule(0, "newface", &excelize.Style{
 
 デフォルトルール:
 
-|タグ名|スタイル内容|優先度|
+|タグ名|スタイル|優先度|
 |---|---|---|
 |`warn`|黄色背景 (`#ffffaa`)|98|
 |`error`|赤背景 (`#ffaaaa`)|99|
 
 ### 2. スタイル適用条件（述語）の登録
 
-構造体のメソッドまたは関数として定義します．
+次に，スタイルが適用される条件を示す述語を登録します．
 
-無項述語関数，もしくは対象フィールドの型を引数とする1項述語関数が利用可能です．
+適用条件を示す述語は，構造体のメソッドまたは関数として定義します．
+述語関数は，無引数または対象フィールドの型を引数とする必要があります．
 
 ```go
 exceltable.RegisterPredicate("isNewFace", func(name string) bool {
@@ -163,7 +155,9 @@ exceltable.RegisterPredicate("isNewFace", func(name string) bool {
 |`nil`|ポインタ型フィールドがnil|
 |`notNil`|ポインタ型フィールドが非nil|
 
-### 3. タグ指定によるカスタマイズ
+### 3. 構造体タグの追加
+
+構造体のフィールドに対して，ヘッダ名やスタイル適用条件を示すタグを追加します．
 
 ヘッダ名は「`excel` > `csv` > フィールド名」の順で決定されます．
 非表示にしたいフィールドには `excel:"-"` を設定します．
@@ -175,41 +169,36 @@ type Person struct {
     ID            string  `error:"zero"`
     Name          string  `csv:"name" excel:"氏名" newface:"isNewFace" error:"zero"`
     Age           int     `csv:"age" excel:"年齢" warn:"IsChild,IsOld"`
-    Address       string  `csv:"address" excel:"住所" warn:"-"`
+    Address       string  `csv:"address" excel:"住所"`
     AccountNumber string  `csv:"account_number" excel:"-"`
     SpecialID     *string `warn:"notZero" error:"nil"`
 }
 
-func (p *Person) IsChild() bool { // pointer receiver.
+func (p *Person) IsChild() bool {
     return p.Age < 18
 }
 
-func (p Person) IsOld() bool { // value receiver.
+func (p Person) IsOld() bool {
     return 75 <= p.Age
 }
 ```
 
-### 4. 書き出し
+### 4. スプレッドシートへの書き出し
 
 ```go
 f, _ := exceltable.NewFile()
-s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "People", "A1", true)
+s, _ := exceltable.NewSheetWithStreamWriter[Person](f, "NewSheet", "A1", true)
 
 s.SetHeader()
 
-s.SetRow(&Person{
-    ID:            "ID-123456",
-    Name:          "Alice",
-    Age:           17,
-    Address:       "",
-    AccountNumber: "0000-0000-0000-0000",
-    SpecialID:     &aliceSpecialID,
-})
+s.SetRow(alice)
+s.SetRow(bob)
+s.SetRow(carol)
 
 s.AddDefaultTable()
 s.Flush()
 
-f.SaveAs("people.xlsx")
+f.SaveAs("NewBook.xlsx")
 ```
 
 ## License

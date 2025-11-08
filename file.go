@@ -1,7 +1,8 @@
 // Package exceltable is a simple wrapper around [excelize],
 // providing utilities for writing Go structs to spreadsheet tables.
 //
-// It supports customizable column headers via struct tags
+// It supports mapping between structs and spreadsheet tables,
+// customizable column headers via struct tags,
 // and conditional cell styling based on predicate functions.
 //
 // [excelize]: https://github.com/qax-os/excelize
