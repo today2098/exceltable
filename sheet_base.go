@@ -175,3 +175,10 @@ func (s *sheetBase[M]) coordinatesToCellName(col, row int, abs ...bool) string {
 	}
 	return cell
 }
+
+func getUnderlyingValue(field reflect.Value) any {
+	for field.Kind() == reflect.Pointer && !field.IsNil() {
+		field = field.Elem()
+	}
+	return field.Interface()
+}

@@ -41,10 +41,7 @@ func (s *Sheet[M]) SetRow(obj *M) error {
 		}
 
 		field := v.Field(i)
-		for field.Kind() == reflect.Pointer && !field.IsNil() {
-			field = field.Elem()
-		}
-		if err := s.setCellValue(col, s.row, field.Interface()); err != nil {
+		if err := s.setCellValue(col, s.row, getUnderlyingValue(field)); err != nil {
 			return err
 		}
 

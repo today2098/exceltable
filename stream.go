@@ -49,11 +49,8 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 		}
 
 		field := v.Field(i)
-		for field.Kind() == reflect.Pointer && !field.IsNil() {
-			field = field.Elem()
-		}
-
 		styleID := 0
+
 		for _, rule := range ssw.rulesList[col] {
 			pred := rule.bind(ptrV)
 			b, err := callPredicate(pred, field)
@@ -69,7 +66,7 @@ func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
 
 		values = append(values, &excelize.Cell{
 			StyleID: styleID,
-			Value:   field.Interface(),
+			Value:   getUnderlyingValue(field),
 		})
 		col++
 	}
