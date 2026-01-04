@@ -66,16 +66,18 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	RegisterRule(0, "newface", &excelize.Style{ // custom style rule.
+	RegisterDefaultRule("newface", &excelize.Style{ // custom style rule.
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
 			Color:   []string{"#aaffaa"},
 		},
-	})
+	}, 0)
 
-	RegisterPredicate("isNewFace", func(name string) bool { // predicate function.
+	if err := RegisterDefaultPredicate("isNewFace", func(name string) bool { // predicate function.
 		newFaces := []string{"Alice"}
 		return slices.Contains(newFaces, name)
-	})
+	}); err != nil {
+		panic(err)
+	}
 }

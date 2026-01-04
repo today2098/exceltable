@@ -25,15 +25,15 @@ func (p Person) IsOld() bool { // value receiver.
 }
 
 func init() {
-	exceltable.RegisterRule(0, "newface", &excelize.Style{ // custom style rule.
+	exceltable.RegisterDefaultRule("newface", &excelize.Style{ // custom style rule.
 		Fill: excelize.Fill{
 			Type:    "pattern",
 			Pattern: 1,
 			Color:   []string{"#aaffaa"},
 		},
-	})
+	}, 0)
 
-	exceltable.RegisterPredicate("isNewFace", func(name string) bool { // predicate function.
+	exceltable.RegisterDefaultPredicate("isNewFace", func(name string) bool { // predicate function.
 		newFaces := []string{"Alice"}
 		return slices.Contains(newFaces, name)
 	})

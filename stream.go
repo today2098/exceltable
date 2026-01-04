@@ -1,8 +1,6 @@
 package exceltable
 
 import (
-	"reflect"
-
 	"github.com/xuri/excelize/v2"
 )
 
@@ -12,7 +10,7 @@ type SheetWithStreamWriter[M any] struct {
 	*excelize.StreamWriter
 }
 
-// NewSheetWithStreamWriter creates a new exceltable.SheetWithStreamWriter with the given sheet name and starting cell.
+// NewSheetWithStreamWriter creates a new *exceltable.SheetWithStreamWriter with the given sheet name and starting cell.
 //
 //	ssw, _ := exceltable.NewSheetWithStreamWriter[YourStruct](f, "NewSheet", "A1", true)
 func NewSheetWithStreamWriter[M any](f *File, name, cell string, active bool) (*SheetWithStreamWriter[M], error) {
@@ -26,49 +24,37 @@ func NewSheetWithStreamWriter[M any](f *File, name, cell string, active bool) (*
 		return nil, err
 	}
 
-	return &SheetWithStreamWriter[M]{sb, streamWriter}, nil
+	return &SheetWithStreamWriter[M]{
+		sheetBase:    sb,
+		StreamWriter: streamWriter,
+	}, nil
 }
 
 // SetHeader writes the header row to the table.
 //
 // It must be called before writing any data rows.
 func (ssw *SheetWithStreamWriter[M]) SetHeader() error {
-	return ssw.StreamWriter.SetRow(ssw.coordinatesToCellName(0, 0), ssw.header)
+	return ssw.StreamWriter.SetRow(ssw.coordinatesToCellName(0, 0), ssw.getHeader())
 }
 
 // SetRow writes a row of data to the table.
 func (ssw *SheetWithStreamWriter[M]) SetRow(obj *M) error {
-	ptrV := reflect.ValueOf(obj)
-	v := ptrV.Elem()
+	cellValues, err := ssw.parseToCellValueList(obj)
+	if err != nil {
+		return err
+	}
 
 	values := make([]any, 0, ssw.tableWidth)
-	col := 0
-	for i := range ssw.numField {
-		if ssw.skip[i] {
+	for _, v := range cellValues {
+		if v.styleID >= 0 {
+			values = append(values, &excelize.Cell{
+				StyleID: v.styleID,
+				Value:   v.value,
+			})
 			continue
 		}
 
-		field := v.Field(i)
-		styleID := 0
-
-		for _, rule := range ssw.rulesList[col] {
-			pred := rule.bind(ptrV)
-			b, err := callPredicate(pred, field)
-			if err != nil {
-				return err
-			}
-
-			if b {
-				styleID = rule.styleID
-				break // NOTE: Break to prevent overwriting.
-			}
-		}
-
-		values = append(values, &excelize.Cell{
-			StyleID: styleID,
-			Value:   getUnderlyingValue(field),
-		})
-		col++
+		values = append(values, v.value)
 	}
 
 	cell := ssw.coordinatesToCellName(0, ssw.row)
