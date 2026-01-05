@@ -22,6 +22,7 @@ type sheetBase[M any] struct {
 	tableWidth int    // table width (number of columns)
 	row        int    // current number of rows
 	field      *field // field of type M
+	SpecifyNil bool   // whether to specify nil pointer fields
 }
 
 func newSheetBase[M any](f *File, name, cell string, active bool) (*sheetBase[M], error) {
@@ -99,7 +100,7 @@ func (sb *sheetBase[M]) parseToCellValueListInternal(v reflect.Value, field *fie
 		}
 
 		baseFieldV := walkValue(fieldV)
-		if child.tag.inline && baseFieldV.Type().Kind() != reflect.Pointer {
+		if child.tag.inline && baseFieldV.Type().Kind() == reflect.Struct {
 			childCellValues, err := sb.parseToCellValueListInternal(baseFieldV, child, rule)
 			if err != nil {
 				return nil, err
@@ -109,13 +110,19 @@ func (sb *sheetBase[M]) parseToCellValueListInternal(v reflect.Value, field *fie
 		}
 
 		value := fmt.Sprint(baseFieldV.Interface())
+		if (isNilable(baseFieldV.Type()) && baseFieldV.IsNil()) ||
+			(child.tag.omitEmpty && baseFieldV.Type() == child.typ && baseFieldV.IsZero()) ||
+			(child.tag.omitZero && baseFieldV.IsZero()) {
+			value = ""
+		}
+		if (sb.SpecifyNil || child.tag.specifyNil) && isNilable(baseFieldV.Type()) { // baseFieldV is nil
+			value = fmt.Sprint(nil)
+		}
 		if assignableToStringer(child.typ) {
 			value = fmt.Sprint(fieldV.Interface())
-		}
-		if (child.tag.omitEmpty && baseFieldV.Type() == child.typ && baseFieldV.IsZero()) ||
-			(child.tag.omitZero && baseFieldV.IsZero()) ||
-			(!child.tag.specifyNil && baseFieldV.Type().Kind() == reflect.Pointer) {
-			value = ""
+			if !sb.SpecifyNil && !child.tag.specifyNil && isNilable(fieldV.Type()) && fieldV.IsNil() {
+				value = ""
+			}
 		}
 
 		// NOTE: Invalid style ID is greater than or equal to 0.
