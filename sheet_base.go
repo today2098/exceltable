@@ -54,6 +54,10 @@ func newSheetBase[M any](f *File, name, cell string, active bool) (*sheetBase[M]
 	}, nil
 }
 
+func (sb *sheetBase[M]) File() *File {
+	return sb.file
+}
+
 func (sb *sheetBase[M]) getHeader() []any {
 	header := make([]any, 0, sb.tableWidth)
 	var dfs func(field *field)
