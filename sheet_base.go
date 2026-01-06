@@ -109,20 +109,15 @@ func (sb *sheetBase[M]) parseToCellValueListInternal(v reflect.Value, field *fie
 			continue
 		}
 
-		value := fmt.Sprint(baseFieldV.Interface())
-		if (isNilable(baseFieldV.Type()) && baseFieldV.IsNil()) ||
-			(child.tag.omitEmpty && baseFieldV.Type() == child.typ && baseFieldV.IsZero()) ||
-			(child.tag.omitZero && baseFieldV.IsZero()) {
+		stringerFieldV := walkValueToStringer(fieldV)
+		value := stringerFieldV.Interface()
+		if (isNilable(stringerFieldV.Type()) && stringerFieldV.IsNil()) ||
+			(child.tag.omitEmpty && stringerFieldV.Type() == child.typ && stringerFieldV.IsZero()) ||
+			(child.tag.omitZero && stringerFieldV.IsZero()) {
 			value = ""
 		}
-		if (sb.SpecifyNil || child.tag.specifyNil) && isNilable(baseFieldV.Type()) { // baseFieldV is nil
-			value = fmt.Sprint(nil)
-		}
-		if assignableToStringer(child.typ) {
-			value = fmt.Sprint(fieldV.Interface())
-			if !sb.SpecifyNil && !child.tag.specifyNil && isNilable(fieldV.Type()) && fieldV.IsNil() {
-				value = ""
-			}
+		if (sb.SpecifyNil || child.tag.specifyNil) && isNilable(stringerFieldV.Type()) {
+			value = stringerFieldV.Interface()
 		}
 
 		// NOTE: Invalid style ID is greater than or equal to 0.
