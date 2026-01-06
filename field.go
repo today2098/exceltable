@@ -177,15 +177,19 @@ func (c *fieldCache) cache(typ reflect.Type) (*field, error) {
 
 // CountByRule counts the number of fields in obj that satisfy the predicates associated with the rule tag name.
 func CountByRule[M any](obj *M, tagName string) (int, error) {
-	field, err := defaultFieldCache.cache(reflect.TypeFor[M]())
+	return countByRule(obj, tagName, defaultFieldCache)
+}
+
+func countByRule[M any](obj *M, tagName string, cache *fieldCache) (int, error) {
+	field, err := cache.cache(reflect.TypeFor[M]())
 	if err != nil {
 		return 0, err
 	}
 
-	return countByRuleInternal(reflect.ValueOf(obj), field, tagName)
+	return countByRuleInternal(reflect.ValueOf(obj), tagName, field)
 }
 
-func countByRuleInternal(ptrV reflect.Value, field *field, tagName string) (int, error) {
+func countByRuleInternal(ptrV reflect.Value, tagName string, field *field) (int, error) {
 	v := ptrV.Elem()
 
 	cnt := 0
@@ -198,7 +202,7 @@ func countByRuleInternal(ptrV reflect.Value, field *field, tagName string) (int,
 		}
 
 		if child.tag.inline {
-			c, err := countByRuleInternal(walkValue(fieldV).Addr(), child, tagName)
+			c, err := countByRuleInternal(walkValue(fieldV).Addr(), tagName, child)
 			if err != nil {
 				return 0, err
 			}
