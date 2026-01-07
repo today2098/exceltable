@@ -72,3 +72,8 @@ func OpenReader(r io.Reader, opts ...excelize.Options) (*File, error) {
 	}
 	return Wrap(file)
 }
+
+// CountByRule counts the number of fields in obj that satisfy the predicates associated with the rule tag name.
+func (f *File) CountByRule(obj any, tagName string) (int, error) {
+	return countByRule(obj, tagName, f.cache)
+}
